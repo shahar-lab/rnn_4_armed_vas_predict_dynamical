@@ -11,20 +11,30 @@ def q_pred(df,parameters):
     # upload data of the subject/agent
     action_list = df['action'].astype(int)
     reward_list = df['reward'].astype(np.float32)
- 
+    card_0_list = df['card_0'].astype(int)
+    card_1_list = df['card_1'].astype(int)
+
     # set up paramters of the agent     
     alpha = parameters[0] 
     beta = parameters[1]
 
+    deck_size = 4
+
     # initialize q-values and preservation
-    q = np.zeros(2)
+    q = np.zeros(deck_size)
 
     for t in range(num_of_trials):
             
-        if t%100 == 0:
-            q = np.zeros(2)
+        if t%25 == 0:
+            q = np.zeros(deck_size)
 
-        p = np.exp( beta*q ) / np.sum( np.exp( beta * q ) ) 
+        # get presented cards
+        card_0 = card_0_list[t]
+        card_1 = card_1_list[t]
+
+        q_cards = np.array([q[card_0], q[card_1]])
+
+        p = np.exp( beta * q_cards ) / np.sum( np.exp( beta*q_cards ) ) 
         
         # predict action according max probs 
         action_predict = np.argmax(p)
@@ -34,11 +44,13 @@ def q_pred(df,parameters):
         action = action_list[t]
         reward = reward_list[t]
 
+        chosen_card = card_0 if action == 0 else card_1
+
         # prediction error
-        prediction_error = reward - q[action] 
+        prediction_error = reward - q[chosen_card] 
 
         # update q_learning formula
-        q[action] = q[action] + alpha*prediction_error 
+        q[chosen_card] = q[chosen_card] + alpha*prediction_error 
 
         # cheek if prediction match the true action
         if action_predict == action_list[t]:
